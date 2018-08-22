@@ -10,13 +10,13 @@ class Dataset:
     validation_folder = 'fer2013_features/PublicTest'
     test_folder = 'fer2013_features/PrivateTest'
     shape_predictor_path='shape_predictor_68_face_landmarks.dat'
-    trunc_trainset_to = -1  # put the number of train images to use (-1 = all images of the train set)
+    trunc_trainset_to = 1000  # put the number of train images to use (-1 = all images of the train set)
     trunc_validationset_to = -1
     trunc_testset_to = -1
 
 class Network:
     input_size = 48
-    output_size = 5
+    output_size = 7  # number of expressions
     activation = 'relu'
     loss = 'categorical_crossentropy'
     use_landmarks = True
@@ -47,6 +47,7 @@ class Training:
     save_model_path = "best_model/saved_model.bin"
 
 class VideoPredictor:
+    # TODO 7 types
     emotions = ["Angry", "Happy", "Sad", "Surprise", "Neutral"]
     print_emotions = False
     camera_source = 0

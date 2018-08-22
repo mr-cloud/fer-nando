@@ -35,6 +35,7 @@ class EmotionRecognizer:
         self.last_predicted_emotion = ""
 
     def predict_emotion(self, image):
+        # TOKNOW
         image.resize([NETWORK.input_size, NETWORK.input_size], refcheck=False)
         emotion, confidence = predict(image, self.model, self.shape_predictor)
         return emotion, confidence

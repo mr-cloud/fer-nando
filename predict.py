@@ -86,8 +86,14 @@ parser.add_argument("-i", "--image", help="Image file to predict")
 args = parser.parse_args()
 if args.image:
     if os.path.isfile(args.image):
-        model = load_model()
         image = cv2.imread(args.image, 0)
+        print image.shape
+        image = cv2.resize(image, (NETWORK.input_size, NETWORK.input_size))
+        print image.shape
+        cv2.imshow(args.image, image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        model = load_model()
         shape_predictor = dlib.shape_predictor(DATASET.shape_predictor_path)
         start_time = time.time()
         emotion, confidence = predict(image, model, shape_predictor)
