@@ -47,8 +47,9 @@ class Training:
     save_model_path = "best_model/saved_model.bin"
 
 class VideoPredictor:
-    # TODO 7 types
-    emotions = ["Angry", "Happy", "Sad", "Surprise", "Neutral"]
+    # emotions = ["Angry", "Happy", "Sad", "Surprise", "Neutral"]
+    # Number of emotions should be the same as NETWORK.output_size
+    emotions = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
     print_emotions = False
     camera_source = 0
     face_detection_classifier = "lbpcascade_frontalface.xml"
