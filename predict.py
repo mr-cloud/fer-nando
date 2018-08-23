@@ -47,7 +47,13 @@ def sliding_hog_windows(image):
                                             cells_per_block=(1, 1), visualise=False))
     return hog_windows
 
+
 def predict(image, model, shape_predictor=None):
+    # rescale to the input size of model
+    print image.shape
+    image = cv2.resize(image, (NETWORK.input_size, NETWORK.input_size))
+    print image.shape
+
     # get landmarks
     if NETWORK.use_landmarks or NETWORK.use_hog_and_landmarks or NETWORK.use_hog_sliding_window_and_landmarks:
         face_rects = [dlib.rectangle(left=0, top=0, right=NETWORK.input_size, bottom=NETWORK.input_size)]
@@ -87,9 +93,6 @@ args = parser.parse_args()
 if args.image:
     if os.path.isfile(args.image):
         image = cv2.imread(args.image, 0)
-        print image.shape
-        image = cv2.resize(image, (NETWORK.input_size, NETWORK.input_size))
-        print image.shape
         cv2.imshow(args.image, image)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
