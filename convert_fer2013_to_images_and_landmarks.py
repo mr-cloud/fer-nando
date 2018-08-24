@@ -29,7 +29,7 @@ parser.add_argument("-j", "--jpg", default="no", help="save images as .jpg files
 parser.add_argument("-l", "--landmarks", default="yes", help="extract Dlib Face landmarks")
 parser.add_argument("-ho", "--hog", default="yes", help="extract HOG features")
 parser.add_argument("-hw", "--hog_windows", default="yes", help="extract HOG features from a sliding window")
-parser.add_argument("-o", "--onehot", default="yes", help="one hot encoding")
+parser.add_argument("-o", "--onehot", default="yes", help="one hot encoding for label")
 parser.add_argument("-e", "--expressions", default="0,1,2,3,4,5,6", help="choose the faciale expression you want to use: 0=Angry, 1=Disgust, 2=Fear, 3=Happy, 4=Sad, 5=Surprise, 6=Neutral")
 args = parser.parse_args()
 if args.jpg == "yes":
@@ -123,8 +123,8 @@ for category in data['Usage'].unique():
             if labels[i] in SELECTED_LABELS and nb_images_per_label[get_new_label(labels[i])] < IMAGES_PER_LABEL:
                 image = np.fromstring(samples[i], dtype=int, sep=" ").reshape((image_height, image_width))
                 images.append(image)
-                if SAVE_IMAGES:
-                    scipy.misc.imsave(category + '/' + str(i) + '.jpg', image)
+                if SAVE_IMAGES and category == 'PublicTest':
+                    scipy.misc.imsave(OUTPUT_FOLDER_NAME + '/' + category + '/' + str(i) + '.jpg', image)
                 if GET_HOG_WINDOWS_FEATURES:
                     features = sliding_hog_windows(image)
                     f, hog_image = hog(image, orientations=8, pixels_per_cell=(16, 16),

@@ -16,7 +16,8 @@ class Dataset:
 
 class Network:
     input_size = 48
-    output_size = 7  # number of expressions
+    # number of expressions should match the number of labels in dataset preprocessing
+    output_size = 5
     activation = 'relu'
     loss = 'categorical_crossentropy'
     use_landmarks = True
@@ -32,6 +33,8 @@ class Hyperparams:
     decay_step = 50
     optimizer = 'momentum'  # {'momentum', 'adam'}
     optimizer_param = 0.75463   # momentum value for Momentum optimizer, or beta1 value for Adam
+    # FIXME initialization method selection
+
 
 class Training:
     batch_size = 128
@@ -48,7 +51,8 @@ class Training:
 
 class VideoPredictor:
     # Number of emotions should be the same as NETWORK.output_size
-    emotions = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
+    # (0=Angry, 1=Disgust, 2=Fear, 3=Happy, 4=Sad, 5=Surprise, 6=Neutral)
+    emotions = ["Angry", "Happy", "Sad", "Surprise", "Neutral"]
     print_emotions = False
     camera_source = 0
     face_detection_classifier = "lbpcascade_frontalface.xml"
