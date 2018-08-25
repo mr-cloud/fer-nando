@@ -1,6 +1,6 @@
 """
-@AmineHorseman 
-Sep 12th, 2016
+@leo
+2018/8/25
 """
 import tensorflow as tf
 from tflearn import DNN
@@ -13,10 +13,16 @@ from parameters import NETWORK, DATASET, VIDEO_PREDICTOR
 from model import build_model
 from predict import load_model, predict
 
+import numpy as np
+import thread
+import operator
+
+
 class EmotionRecognizer:
     
     BOX_COLOR = (0, 255, 0)
     TEXT_COLOR = (0, 255, 0)
+
 
     def __init__(self):
        
@@ -30,19 +36,26 @@ class EmotionRecognizer:
             self.shape_predictor = dlib.shape_predictor(DATASET.shape_predictor_path)
         
         self.model = load_model()
-        self.last_predicted_time = 0
-        self.last_predicted_confidence = 0
-        self.last_predicted_emotion = ""
+
+        self.house = None
+        self.PUBLIC_OPINIONS = dict(zip(VIDEO_PREDICTOR.emotions, ['群情激愤', '其乐融融', '哀鸿遍野', '瞠目结舌', '索然无味']))
+        self.OPINION_COLORS = dict(zip(VIDEO_PREDICTOR.emotions, [(255, 0, 0), (255, 173, 0), (77, 0, 255), (213, 0, 255), (26, 255, 0)]))
+        self.pub_op = self.VIDEO_PREDICTOR.emotions[-1]
+        self.is_camera_working = True
+        self.is_exit = False
 
     def predict_emotion(self, image):
         emotion, confidence = predict(image, self.model, self.shape_predictor)
         return emotion, confidence
 
-    def recognize_emotions(self):
+    def recognize_emotions(self, thread_name, delay):
         failedFramesCount = 0
         detected_faces = []
         time_last_sent = 0
-        while True:
+        while not self.is_exit:
+            print('{}: {}'.format(thread_name, time.ctime(time.time())))
+            opinions = dict(zip(VIDEO_PREDICTOR.emotions, np.zeros(5, dtype=np.int32)))
+
             grabbed, frame = self.video_stream.read()
 
             if grabbed:
@@ -62,15 +75,8 @@ class EmotionRecognizer:
 
                     # try to recognize emotion
                     face = gray[y:y+h, x:x+w].copy()
-                    if time.time() - self.last_predicted_time < VIDEO_PREDICTOR.time_to_wait_between_predictions:
-                        label = self.last_predicted_emotion
-                        confidence = self.last_predicted_confidence
-                    else:
-                        label, confidence = self.predict_emotion(face)
-                        self.last_predicted_emotion = label
-                        self.last_predicted_confidence = confidence
-                        self.last_predicted_time = time.time()
-                    
+                    label, confidence = self.predict_emotion(face)
+                    opinions[label] += 1
                     # display and send message by socket
                     if VIDEO_PREDICTOR.show_confidence:
                         text = "{0} ({1:.1f}%)".format(label, confidence*100)
@@ -79,20 +85,35 @@ class EmotionRecognizer:
                     if label is not None:
                         cv2.putText(frame, text, (x - 20, y - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, self.TEXT_COLOR, 2)
 
-                # display images
-                cv2.imshow("Facial Expression Recognition", frame)
+                self.house = frame
+                self.pub_op = max(opinions.iteritems(), key=operator.itemgetter(1))[0]
+                print('public opinion {} with count {}'.format(self.pub_op, opinions[self.pub_op]))
 
-                key = cv2.waitKey(1) & 0xFF
-                if key == ord("q"):
-                    break            
             else:
                 failedFramesCount += 1
                 if failedFramesCount > 10:
                     print "can't grab frames"
                     break
+            time.sleep(delay)
+        self.is_camera_working = False
 
+    def display(self, thread_name, delay):
+        while self.is_camera_working:
+            print('{}: {}'.format(thread_name, time.ctime(time.time())))
+            # display images
+            height, width, channels = self.house.shape
+            cv2.putText(self.house, self.PUBLIC_OPINIONS[self.pub_op], (height/2 ,0), cv2.FONT_HERSHEY_SIMPLEX, 0.7, self.OPINION_COLORS[self.pub_op], 2)
+            cv2.imshow("Facial Expression Recognition", self.house)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord("q"):
+                break
+            time.sleep(delay)
+        self.is_exit = True
         self.video_stream.release()
         cv2.destroyAllWindows()
 
+
 r = EmotionRecognizer()
-r.recognize_emotions()
+thread.start_new_thread(r.recognize_emotions, ('thread-recognize', VIDEO_PREDICTOR.time_to_wait_between_predictions))
+time.sleep(1)
+thread.start_new_thread(r.display, ('thread-display', VIDEO_PREDICTOR.time_to_wait_between_display))

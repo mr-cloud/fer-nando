@@ -79,7 +79,14 @@ def predict(image, model, shape_predictor=None):
         return get_emotion(predicted_label[0])
     return None
 
+
 def get_emotion(label):
+    """
+    expect five expressions in the label
+
+    :param label:
+    :return:
+    """
     if VIDEO_PREDICTOR.print_emotions:
         print "- Angry: {0:.1f}%\n- Happy: {1:.1f}%\n- Sad: {2:.1f}%\n- Surprise: {3:.1f}%\n- Neutral: {4:.1f}%".format(
                 label[0]*100, label[1]*100, label[2]*100, label[3]*100, label[4]*100)
