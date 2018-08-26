@@ -57,8 +57,10 @@ class VideoPredictor:
     camera_source = 0
     face_detection_classifier = "lbpcascade_frontalface.xml"
     show_confidence = False
-    time_to_wait_between_predictions = 0.01
-    time_to_wait_between_display = 0.1
+    frame_rate = 0.01
+    time_to_wait_between_predictions = frame_rate
+    time_to_wait_between_display = 0.03
+    title_change_interval = 1.0
 
 
 def make_dir(folder):
