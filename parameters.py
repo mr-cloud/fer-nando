@@ -53,6 +53,7 @@ class VideoPredictor:
     # Number of emotions should be the same as NETWORK.output_size
     # (0=Angry, 1=Disgust, 2=Fear, 3=Happy, 4=Sad, 5=Surprise, 6=Neutral)
     emotions = ["Angry", "Happy", "Sad", "Surprise", "Neutral"]
+    sentiment_scores = [0.0, 1.0, 0.25, 0.75, 0.5]
     print_emotions = False
     camera_source = 0
     face_detection_classifier = "lbpcascade_frontalface.xml"

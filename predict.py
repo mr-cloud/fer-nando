@@ -93,22 +93,24 @@ def get_emotion(label):
     label = label.tolist()
     return VIDEO_PREDICTOR.emotions[label.index(max(label))], max(label)
 
-# parse arg to see if we need to launch training now or not yet
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--image", help="Image file to predict")
-args = parser.parse_args()
-if args.image:
-    if os.path.isfile(args.image):
-        image = cv2.imread(args.image, 0)
-        cv2.imshow(args.image, image)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-        model = load_model()
-        shape_predictor = dlib.shape_predictor(DATASET.shape_predictor_path)
-        start_time = time.time()
-        emotion, confidence = predict(image, model, shape_predictor)
-        total_time = time.time() - start_time
-        print "Prediction: {0} (confidence: {1:.1f}%)".format(emotion, confidence*100)
-        print "time: {0:.1f} sec".format(total_time)
-    else:
-        print "Error: file '{}' not found".format(args.image)
+
+if __name__ == '__main__':
+    # parse arg to see if we need to launch training now or not yet
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--image", help="Image file to predict")
+    args = parser.parse_args()
+    if args.image:
+        if os.path.isfile(args.image):
+            image = cv2.imread(args.image, 0)
+            cv2.imshow(args.image, image)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+            model = load_model()
+            shape_predictor = dlib.shape_predictor(DATASET.shape_predictor_path)
+            start_time = time.time()
+            emotion, confidence = predict(image, model, shape_predictor)
+            total_time = time.time() - start_time
+            print "Prediction: {0} (confidence: {1:.1f}%)".format(emotion, confidence*100)
+            print "time: {0:.1f} sec".format(total_time)
+        else:
+            print "Error: file '{}' not found".format(args.image)
