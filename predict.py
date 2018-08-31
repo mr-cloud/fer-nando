@@ -50,9 +50,7 @@ def sliding_hog_windows(image):
 
 def predict(image, model, shape_predictor=None):
     # rescale to the input size of model
-    # print image.shape
     image = cv2.resize(image, (NETWORK.input_size, NETWORK.input_size))
-    # print image.shape
 
     # get landmarks
     if NETWORK.use_landmarks or NETWORK.use_hog_and_landmarks or NETWORK.use_hog_sliding_window_and_landmarks:

@@ -58,12 +58,18 @@ class VideoPredictor:
     camera_source = 0
     face_detection_classifier = "lbpcascade_frontalface.xml"
     show_confidence = False
-    frame_rate = 0.01
-    time_to_wait_between_predictions = frame_rate
-    time_to_wait_between_display = 0.03
-    title_change_interval = 1.0
+    time_to_wait_between_predictions = 0.5
+    # Public Opinion Analysis App Config
+    frame_rate_pub = 0.01
+    time_to_wait_between_display_pub = 0.03
+    title_change_interval_pub = 1.0
+    time_to_wait_between_predictions_pub = 0.5
+    # Shopping Recommendation
+    frame_rate_shop = 0.01
+    time_to_wait_between_display_shop = 0.03
+    title_change_interval_shop = 1.0
+    time_to_wait_between_predictions_shop = 0.5
     recommend_rate = 3.0
-
 
 def make_dir(folder):
     if not os.path.exists(folder):
