@@ -79,11 +79,10 @@ class EmotionRecognizer:
     def recognize_emotions(self, thread_name, delay):
         failedFramesCount = 0
         while not self.is_exit:
-            print('{}: {}'.format(thread_name, time.ctime(time.time())))
-
             grabbed, frame = self.video_stream.read()
 
             if grabbed:
+                failedFramesCount = 0
                 # detection phase
                 # keep aspect ratio
                 frame = imutils.resize(frame, width=600)
@@ -91,7 +90,7 @@ class EmotionRecognizer:
 
                 # detect faces
                 faces = self.face_detector.detectMultiScale(gray, 1.3, 5)
-                print('#faces detected: {}'.format(len(faces)))
+                print('{}: #faces detected: {}'.format(thread_name, len(faces)))
                 for (x,y,w,h) in faces:
                     if w < 30 and h<30: # skip the small faces (probably false detections)
                         continue
@@ -115,12 +114,12 @@ class EmotionRecognizer:
                 self.pub_op = max(self.opinions.iteritems(), key=operator.itemgetter(1))[0]
                 if self.opinions[self.pub_op] == 0:
                     self.pub_op = VIDEO_PREDICTOR.emotions[-1]
-                print('public opinion {} with count {}'.format(self.pub_op, self.opinions[self.pub_op]))
+                print('{}: public opinion {} with count {}'.format(thread_name, self.pub_op, self.opinions[self.pub_op]))
 
             else:
                 failedFramesCount += 1
                 if failedFramesCount > 10:
-                    print "can't grab frames"
+                    print "{}: can't grab frames".format(thread_name)
                     break
             time.sleep(delay)
         self.is_camera_working = False
@@ -137,7 +136,8 @@ class EmotionRecognizer:
                     self.opinions = dict(zip(VIDEO_PREDICTOR.emotions, np.zeros(5, dtype=np.int32)))
                     start_time = time.time()
                 cv2.putText(self.house, 'Positive: ' + str(self.sentiments[self.cur_pub_op]), (width/2, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, self.OPINION_COLORS[self.cur_pub_op], 2)
-                cv2.imshow("Public Opinion Analysis", self.house)
+                cv2.imshow("Shopping Recommendation", self.house)
+                # TODO transmit this control to recommendor
                 key = cv2.waitKey(1) & 0xFF
                 if key == ord("q"):
                     break
@@ -180,31 +180,35 @@ class EmotionRecognizer:
             emotion = max(opinions.iteritems(), key=operator.itemgetter(1))[0]
             if opinions[emotion] == 0:
                 emotion = VIDEO_PREDICTOR.emotions[-1]
-            cv2.imshow(filename + ':' + emotion, img)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+            win_name = filename + ':' + emotion
+            # cv2.imshow(win_name, img)
+            # cv2.waitKey(0)
+            # cv2.destroyWindow(win_name)
             # resize img
-
             self.items[cnt] = (emotion, img)
             self.classified_items[emotion].append(cnt)
             cnt += 1
         print('Loaded {} imgs.'.format(cnt))
 
     def recommend(self, thread_name, delay):
+        win_name = 'Shopping Recommendation'
         while not self.is_exit:
             print('{}: {}'.format(thread_name, time.ctime(time.time())))
             # recommendation
             if self.sentiments[self.cur_pub_op] >= 0.5:
-                item_index = random.choice(self.classified_items["happy"])
+                item_index = random.choice(self.classified_items["Happy"])
             else:
-                item_index = random.choice(self.classified_items["neutral"])
+                item_index = random.choice(self.classified_items["Neutral"])
             emotion = self.items[item_index][0]
             img = self.items[item_index][1]
-            height, width, channels = self.house.shape
+            height, width, channels = img.shape
             cv2.putText(img, emotion, (width/2, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, self.TEXT_COLOR, 2)
-            cv2.imshow('Shopping Recommendation', img)
-            time.sleep(delay)
-
+            cv2.imshow(win_name, img)
+            key = cv2.waitKey(0) & 0xFF
+            print('key={}'.format(key))
+            if key == ord("q"):
+                break
+        cv2.destroyWindow(win_name)
 
 # parse arg to see if we need to launch training now or not yet
 parser = argparse.ArgumentParser()
@@ -215,10 +219,10 @@ if args.path:
     if os.path.isdir(args.path):
         r = EmotionRecognizer()
         r.load_items(args.path)
-        thread.start_new_thread(r.display, ('thread-display', VIDEO_PREDICTOR.time_to_wait_between_display))
-        time.sleep(1)
-        thread.start_new_thread(r.recognize_emotions, ('thread-recognize', VIDEO_PREDICTOR.frame_rate))
-        time.sleep(1)
         thread.start_new_thread(r.recommend, ('thread-recommend', VIDEO_PREDICTOR.recommend_rate))
+        # time.sleep(1)
+        # thread.start_new_thread(r.display, ('thread-display', VIDEO_PREDICTOR.time_to_wait_between_display))
+        # time.sleep(1)
+        # thread.start_new_thread(r.recognize_emotions, ('thread-recognize', VIDEO_PREDICTOR.frame_rate))
     else:
         print "Error: path '{}' not found".format(args.path)
