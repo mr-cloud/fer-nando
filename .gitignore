@@ -21,3 +21,5 @@ temp.jpg
 checkpoint-*
 .idea/
 expressions/
+**/*.tar.gz
+fonts/

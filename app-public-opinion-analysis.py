@@ -15,6 +15,8 @@ import numpy as np
 from parameters import NETWORK, DATASET, VIDEO_PREDICTOR
 from predict import load_model, predict
 
+from PIL import ImageFont, ImageDraw, Image
+
 
 class EmotionRecognizer:
     
@@ -40,7 +42,6 @@ class EmotionRecognizer:
         return n
 
     def __init__(self):
-
         n_cam = self.countCameras()
         print('#webcam={}'.format(n_cam))
         # initializebevideo stream
@@ -56,13 +57,16 @@ class EmotionRecognizer:
         self.model = load_model()
 
         self.house = None
-        # self.PUBLIC_OPINIONS = dict(zip(VIDEO_PREDICTOR.emotions, ['群情激愤', '其乐融融', '哀鸿遍野', '瞠目结舌', '索然无味']))
         self.PUBLIC_OPINIONS = dict(zip(VIDEO_PREDICTOR.emotions, VIDEO_PREDICTOR.emotions))
+        # color mode: BGR
         self.OPINION_COLORS = dict(zip(VIDEO_PREDICTOR.emotions, [(0, 0, 255), (0, 173, 255), (255, 0, 77), (255, 0, 213), (0, 255, 26)]))
         self.pub_op = VIDEO_PREDICTOR.emotions[-1]
         self.is_camera_working = True
         self.is_exit = False
         self.opinions = dict(zip(VIDEO_PREDICTOR.emotions, np.zeros(5, dtype=np.int32)))
+
+        self.CHINESE_OPINION_COLORS = dict(zip(VIDEO_PREDICTOR.emotions, ['群情激愤', '其乐融融', '哀鸿遍野', '瞠目结舌', '索然无味']))
+        self.CHINESE_PUBLIC_OPINIONS = dict(zip(VIDEO_PREDICTOR.emotions, [(0, 0, 255, 0), (0, 173, 255, 0), (255, 0, 77, 0), (255, 0, 213, 0), (0, 255, 26, 0)]))
 
     def predict_emotion(self, image):
         emotion, confidence = predict(image, self.model, self.shape_predictor)
@@ -87,14 +91,17 @@ class EmotionRecognizer:
                 # parameters: image[, scaleFactor[, minNeighbors[, flags[, minSize[, maxSize]]]]]
                 # scaleFactor: the smaller, the more chance finding faces;
                 # minNeighbors: the higher, the higher quality of face found
-                faces = self.face_detector.detectMultiScale(gray, scaleFactor=1.4, minNeighbors=5, minSize=(30, 30))
+                min_w = 100
+                min_h = 100
+                faces = self.face_detector.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=5, minSize=(min_w, min_h))
                 print('{}: #faces detected: {}'.format(thread_name, len(faces)))
                 if time.time() - start_time > time_to_wait_between_predictions:
                     is_predict_enabled = True
                     last_predicts = list()
                 idx = 0
                 for (x, y, w, h) in faces:
-                    if w < 30 and h < 30:  # skip the small faces (probably false detections)
+                    print('{}: width={}, height={}'.format(thread_name, w, h))
+                    if w < min_w and h < min_h:  # skip the small faces (probably false detections)
                         print('{}: face is ignored cause too small: {}, {}', thread_name, w, h)
                         continue
 
@@ -131,6 +138,12 @@ class EmotionRecognizer:
 
     def display(self, thread_name, delay, title_change_interval):
         start_time = time.time()
+        win_name = "Public Opinion Analysis"
+        cv2.namedWindow(win_name)
+        cv2.moveWindow(win_name, 80, 60)
+        ## Use simsum.ttc to write Chinese.
+        fontpath = "fonts/simsun.ttc"  # <== 这里是宋体路径
+        font = ImageFont.truetype(fontpath, 32)
         while self.is_camera_working:
             # print('{}: {}'.format(thread_name, time.ctime(time.time())))
             # display images
@@ -144,8 +157,12 @@ class EmotionRecognizer:
                     self.opinions = dict(zip(VIDEO_PREDICTOR.emotions, np.zeros(5, dtype=np.int32)))
                     start_time = time.time()
                 # params: img, text, org, fontFace, fontScale, color[, thickness[, lineType[, bottomLeftOrigin]]]
-                cv2.putText(self.house, self.PUBLIC_OPINIONS[self.pub_op], (width/2, 20), cv2.FONT_HERSHEY_SIMPLEX, 1.0, self.OPINION_COLORS[self.pub_op], 4)
-                cv2.imshow("Public Opinion Analysis", self.house)
+                # cv2.putText(self.house, self.PUBLIC_OPINIONS[self.pub_op], (width/2, 20), cv2.FONT_HERSHEY_SIMPLEX, 1.0, self.OPINION_COLORS[self.pub_op], 4)
+                img_pil = Image.fromarray(self.house)
+                draw = ImageDraw.Draw(img_pil)
+                draw.text((width/2, 20), self.CHINESE_PUBLIC_OPINIONS[self.pub_op], font=font, fill=self.CHINESE_OPINION_COLORS[self.pub_op])
+                self.house = np.array(img_pil)
+                cv2.imshow(win_name, self.house)
                 # delay <= 1 ms, 0 means forever
                 key = cv2.waitKey(1) & 0xFF
                 if key == ord("q"):
