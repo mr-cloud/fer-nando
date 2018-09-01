@@ -18,6 +18,7 @@ from parameters import NETWORK, DATASET, VIDEO_PREDICTOR
 from predict import load_model, predict
 
 import random
+from PIL import ImageFont, ImageDraw, Image
 
 
 class EmotionRecognizer:
@@ -68,8 +69,12 @@ class EmotionRecognizer:
         self.opinions = dict(zip(VIDEO_PREDICTOR.emotions, np.zeros(5, dtype=np.int32)))
 
         self.items = dict()
+        self.recommend_pool = None
         self.classified_items = dict(zip(VIDEO_PREDICTOR.emotions, np.ndarray(shape=(len(VIDEO_PREDICTOR.emotions), 0), dtype=np.int32).tolist()))
         self.sentiments = dict(zip(VIDEO_PREDICTOR.emotions, VIDEO_PREDICTOR.sentiment_scores))
+
+        self.frame = None
+        self.interests = dict()
 
     def predict_emotion(self, image):
         emotion, confidence = predict(image, self.model, self.shape_predictor)
@@ -94,14 +99,16 @@ class EmotionRecognizer:
                 # parameters: image[, scaleFactor[, minNeighbors[, flags[, minSize[, maxSize]]]]]
                 # scaleFactor: the smaller, the more chance finding faces;
                 # minNeighbors: the higher, the higher quality of face found
-                faces = self.face_detector.detectMultiScale(gray, scaleFactor=1.4, minNeighbors=5, minSize=(30, 30))
+                min_w = 100
+                min_h = 100
+                faces = self.face_detector.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=5, minSize=(min_w, min_h))
                 print('{}: #faces detected: {}'.format(thread_name, len(faces)))
                 if time.time() - start_time > time_to_wait_between_predictions:
                     is_predict_enabled = True
                     last_predicts = list()
                 idx = 0
                 for (x, y, w, h) in faces:
-                    if w < 30 and h < 30:  # skip the small faces (probably false detections)
+                    if w < min_w and h < min_h:  # skip the small faces (probably false detections)
                         print('{}: face is ignored cause too small: {}, {}', thread_name, w, h)
                         continue
 
@@ -127,7 +134,7 @@ class EmotionRecognizer:
                 if is_predict_enabled and len(faces) > 0:
                     is_predict_enabled = False
                     start_time = time.time()
-                self.house = frame
+                self.frame = np.array(frame)
             else:
                 failedFramesCount += 1
                 if failedFramesCount > 10:
@@ -142,13 +149,23 @@ class EmotionRecognizer:
         start_time = time.time()
         win_name_recommend = 'Recommendation Item'
         win_name_display = "Recommendation User Sentiment"
+        cv2.namedWindow(win_name_display)
+        cv2.moveWindow(win_name_display, 80, 60)
+        cv2.namedWindow(win_name_recommend)
+        cv2.moveWindow(win_name_recommend, 800, 60)
         time.sleep(1)
         thread.start_new_thread(r.recognize_emotions, ('thread-recognize', VIDEO_PREDICTOR.frame_rate_shop, VIDEO_PREDICTOR.time_to_wait_between_predictions_shop))
-        title = 'Neutral'
+        title = 'likeness 0.5'
+        fontpath = "fonts/simsun.ttc"
+        font = ImageFont.truetype(fontpath, 24)
+        item = None
+        item_idx = -1
+        pv_cnt = 0
         while self.is_camera_working:
             # print('{}: {}'.format(thread_name, time.ctime(time.time())))
             # display images
-            if self.house is not None:
+            if self.frame is not None:
+                self.house = np.array(self.frame)
                 height, width, channels = self.house.shape
                 if time.time() - start_time > title_change_interval:
                     self.pub_op = max(self.opinions.iteritems(), key=operator.itemgetter(1))[0]
@@ -156,31 +173,46 @@ class EmotionRecognizer:
                         self.pub_op = VIDEO_PREDICTOR.emotions[-1]
                     print('{}: public opinion {} with count {}'.format(thread_name, self.pub_op, self.opinions[self.pub_op]))
                     self.opinions = dict(zip(VIDEO_PREDICTOR.emotions, np.zeros(5, dtype=np.int32)))
-                    if self.sentiments[self.pub_op] >= 0.5:
-                        title = 'Positive'
-                    else:
-                        title = 'Negative'
+                    title = 'likeness {}'.format(self.sentiments[self.pub_op])
+                    if item is not None:
+                        img = np.array(item)
+                        width, height, channels = img.shape
+                        cv2.putText(img, title, (80, height - 60), cv2.FONT_HERSHEY_SIMPLEX, 1.0,
+                                    self.OPINION_COLORS[self.pub_op], 4)
+                        cv2.imshow(win_name_recommend, img)
+                        cv2.waitKey(1)
                     start_time = time.time()
                 # params: img, text, org, fontFace, fontScale, color[, thickness[, lineType[, bottomLeftOrigin]]]
-                cv2.putText(self.house, title, (width/2, 20), cv2.FONT_HERSHEY_SIMPLEX, 1.0, self.OPINION_COLORS[self.pub_op], 4)
+                cv2.putText(self.house, self.PUBLIC_OPINIONS[self.pub_op], (width/2, 20), cv2.FONT_HERSHEY_SIMPLEX, 1.0, self.OPINION_COLORS[self.pub_op], 4)
                 cv2.imshow(win_name_display, self.house)
                 # delay <= 1 ms, 0 means forever
                 key = cv2.waitKey(1) & 0xFF
                 if key == ord("q"):
                     break
                 elif key == ord('n'):
-                    item = self.recommend()
+                    # save state
+                    if item_idx != -1:
+                        self.interests[item_idx] = self.sentiments[self.pub_op]
+                    item_idx, item = self.recommend()
+                    if item_idx is None:
+                        print('No more items to recommend! To be continued!')
+                        break
                     cv2.imshow(win_name_recommend, item)
                     cv2.waitKey(1)
+                    pv_cnt += 1
+                    print('#recommendation={}'.format(pv_cnt))
             time.sleep(delay)
         cv2.destroyWindow(win_name_display)
         cv2.destroyWindow(win_name_recommend)
         self.is_exit = True
         self.video_stream.release()
+        self.show_interests()
 
     def load_items(self, path):
         cnt = 0
         win_name = 'Predicting items while loading'
+        cv2.namedWindow(win_name)
+        cv2.moveWindow(win_name, 80, 60)
         for file in os.listdir(path):
             filename = os.path.join(path, file)
             img = cv2.imread(filename)
@@ -219,16 +251,31 @@ class EmotionRecognizer:
             cv2.waitKey(0)
             self.items[cnt] = (emotion, img)
             self.classified_items[emotion].append(cnt)
+            self.interests[cnt] = 0.5
             cnt += 1
+        self.recommend_pool = self.items.keys()
         cv2.destroyWindow(win_name)
         print('Loaded {} imgs.'.format(cnt))
 
     def recommend(self):
-        if self.sentiments[self.pub_op] >= 0.5:
-            item_index = random.choice(self.classified_items["Happy"])
-        else:
-            item_index = random.choice(self.classified_items["Neutral"])
-        return self.items[item_index][1]
+        # uniformly randomly selection from the pool
+        if len(self.recommend_pool) == 0:
+            return None, None
+        item_index = random.choice(self.recommend_pool)
+        self.recommend_pool.remove(item_index)
+        return item_index, np.array(self.items[item_index][1])
+
+    def show_interests(self):
+        ranks = sorted(self.interests, key=self.interests.get, reverse=True)
+        print(ranks)
+        print(self.interests)
+        for rank, item_idx in enumerate(ranks[0:3]):
+            win_name = '{}. likeness:{}'.format(rank + 1, self.interests[item_idx])
+            cv2.namedWindow(win_name)
+            cv2.moveWindow(win_name, 80 + rank * 100, 60 + rank * 100)
+            cv2.imshow(win_name, self.items[item_idx][1])
+            cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
 
 # parse arg to see if we need to launch training now or not yet

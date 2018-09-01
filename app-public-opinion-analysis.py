@@ -65,8 +65,9 @@ class EmotionRecognizer:
         self.is_exit = False
         self.opinions = dict(zip(VIDEO_PREDICTOR.emotions, np.zeros(5, dtype=np.int32)))
 
-        self.CHINESE_OPINION_COLORS = dict(zip(VIDEO_PREDICTOR.emotions, ['群情激愤', '其乐融融', '哀鸿遍野', '瞠目结舌', '索然无味']))
-        self.CHINESE_PUBLIC_OPINIONS = dict(zip(VIDEO_PREDICTOR.emotions, [(0, 0, 255, 0), (0, 173, 255, 0), (255, 0, 77, 0), (255, 0, 213, 0), (0, 255, 26, 0)]))
+        self.CHINESE_PUBLIC_OPINIONS = dict(zip(VIDEO_PREDICTOR.emotions, [u'群情激愤|>_<|', u'其乐融融 (^o^)', u'哀鸿遍野 /T_T\\', u'瞠目结舌)O.O(', u'索然无味...']))
+        self.CHINESE_OPINION_COLORS = dict(zip(VIDEO_PREDICTOR.emotions, [(0, 0, 255, 0), (0, 173, 255, 0), (255, 0, 77, 0), (255, 0, 255, 0), (0, 255, 26, 0)]))
+        self.frame = None
 
     def predict_emotion(self, image):
         emotion, confidence = predict(image, self.model, self.shape_predictor)
@@ -127,7 +128,7 @@ class EmotionRecognizer:
                 if is_predict_enabled and len(faces) > 0:
                     is_predict_enabled = False
                     start_time = time.time()
-                self.house = frame
+                self.frame = np.array(frame)
             else:
                 failedFramesCount += 1
                 if failedFramesCount > 10:
@@ -142,12 +143,13 @@ class EmotionRecognizer:
         cv2.namedWindow(win_name)
         cv2.moveWindow(win_name, 80, 60)
         ## Use simsum.ttc to write Chinese.
-        fontpath = "fonts/simsun.ttc"  # <== 这里是宋体路径
-        font = ImageFont.truetype(fontpath, 32)
+        fontpath = "fonts/simsun.ttc"
+        font = ImageFont.truetype(fontpath, 24)
         while self.is_camera_working:
             # print('{}: {}'.format(thread_name, time.ctime(time.time())))
             # display images
-            if self.house is not None:
+            if self.frame is not None:
+                self.house = np.array(self.frame)
                 height, width, channels = self.house.shape
                 if time.time() - start_time > title_change_interval:
                     self.pub_op = max(self.opinions.iteritems(), key=operator.itemgetter(1))[0]
@@ -156,8 +158,6 @@ class EmotionRecognizer:
                     print('{}: public opinion {} with count {}'.format(thread_name, self.pub_op, self.opinions[self.pub_op]))
                     self.opinions = dict(zip(VIDEO_PREDICTOR.emotions, np.zeros(5, dtype=np.int32)))
                     start_time = time.time()
-                # params: img, text, org, fontFace, fontScale, color[, thickness[, lineType[, bottomLeftOrigin]]]
-                # cv2.putText(self.house, self.PUBLIC_OPINIONS[self.pub_op], (width/2, 20), cv2.FONT_HERSHEY_SIMPLEX, 1.0, self.OPINION_COLORS[self.pub_op], 4)
                 img_pil = Image.fromarray(self.house)
                 draw = ImageDraw.Draw(img_pil)
                 draw.text((width/2, 20), self.CHINESE_PUBLIC_OPINIONS[self.pub_op], font=font, fill=self.CHINESE_OPINION_COLORS[self.pub_op])
