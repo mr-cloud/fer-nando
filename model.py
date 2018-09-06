@@ -12,6 +12,8 @@ from tflearn.optimizers import Momentum, Adam
 
 from parameters import NETWORK, HYPERPARAMS
 
+
+# FIXME combine with Inception
 def build_model(optimizer=HYPERPARAMS.optimizer, optimizer_param=HYPERPARAMS.optimizer_param, 
     learning_rate=HYPERPARAMS.learning_rate, keep_prob=HYPERPARAMS.keep_prob,
     learning_rate_decay=HYPERPARAMS.learning_rate_decay, decay_step=HYPERPARAMS.decay_step):
@@ -30,6 +32,7 @@ def build_model(optimizer=HYPERPARAMS.optimizer, optimizer_param=HYPERPARAMS.opt
     if NETWORK.use_batchnorm_after_conv_layers:
         images_network = batch_normalization(images_network)
     images_network = dropout(images_network, keep_prob=keep_prob)
+    # TOKNOW How does it work by 128 * 12 * 12 connecting FL with 1024
     images_network = fully_connected(images_network, 1024, activation=NETWORK.activation)
     if NETWORK.use_batchnorm_after_fully_connected_layers:
         images_network = batch_normalization(images_network)
@@ -54,6 +57,7 @@ def build_model(optimizer=HYPERPARAMS.optimizer, optimizer_param=HYPERPARAMS.opt
     network = fully_connected(network, NETWORK.output_size, activation='softmax')
 
     if optimizer == 'momentum':
+        # FIXME base_lr * (1 - iter/max_iter)^0.5, base_lr = 0.01
         optimizer = Momentum(learning_rate=learning_rate, momentum=optimizer_param, 
                     lr_decay=learning_rate_decay, decay_step=decay_step)
     elif optimizer == 'adam':

@@ -78,6 +78,7 @@ def predict(image, model, shape_predictor=None):
     return None
 
 
+# FIXME get top-2 emotions
 def get_emotion(label):
     """
     expect five expressions in the label
