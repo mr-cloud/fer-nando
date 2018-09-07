@@ -138,7 +138,7 @@ class EmotionRecognizer:
             else:
                 failedFramesCount += 1
                 if failedFramesCount > 10:
-                    print "can't grab frames"
+                    print("can't grab frames")
                     break
             time.sleep(delay)
         self.is_camera_working = False
@@ -288,4 +288,4 @@ if args.path:
         r = EmotionRecognizer()
         thread.start_new_thread(r.display, ('thread-display', VIDEO_PREDICTOR.time_to_wait_between_display_shop, VIDEO_PREDICTOR.title_change_interval_shop, args.path))
     else:
-        print "Error: path '{}' not found".format(args.path)
+        print("Error: path '{}' not found".format(args.path))

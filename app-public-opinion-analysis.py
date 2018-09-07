@@ -132,7 +132,7 @@ class EmotionRecognizer:
             else:
                 failedFramesCount += 1
                 if failedFramesCount > 10:
-                    print "can't grab frames"
+                    print("can't grab frames")
                     break
             time.sleep(delay)
         self.is_camera_working = False

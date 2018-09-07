@@ -44,9 +44,9 @@ def function_to_minimize(hyperparams, optimizer=HYPERPARAMS.optimizer, optimizer
         optimizer_param = hyperparams['optimizer_param']
     global current_eval 
     global max_evals
-    print "#################################"
-    print "       Evaluation {} of {}".format(current_eval, max_evals)
-    print "#################################"
+    print("#################################")
+    print("       Evaluation {} of {}".format(current_eval, max_evals))
+    print("#################################")
     start_time = time.time()
     try:
         accuracy = train(learning_rate=learning_rate, learning_rate_decay=learning_rate_decay, 
@@ -57,9 +57,9 @@ def function_to_minimize(hyperparams, optimizer=HYPERPARAMS.optimizer, optimizer
                                   'optimizer':optimizer, 'optimizer_param':optimizer_param, 'keep_prob':keep_prob, 'time':training_time})
     except Exception as e:
         # exception occured during training, saving history and stopping the operation
-        print "#################################"
-        print "Exception during training: {}".format(str(e))
-        print "Saving train history in train_history.npy"
+        print("#################################")
+        print("Exception during training: {}".format(str(e)))
+        print("Saving train history in train_history.npy")
         np.save("train_history.npy", train_history)
         exit()
     return {'loss': -accuracy, 'time': training_time, 'status': STATUS_OK}
@@ -75,8 +75,8 @@ for trial in trials.trials:
             trial['misc']['vals']['learning_rate_decay'][0] == best_trial['learning_rate_decay']:
         best_trial['accuracy'] = -trial['result']['loss'] * 100
         best_trial['time'] = trial['result']['time']
-print "#################################"
-print "      Best parameters found"
-print "#################################"
+print("#################################")
+print("      Best parameters found")
+print("#################################")
 pprint.pprint(best_trial)
-print "#################################"
+print("#################################")

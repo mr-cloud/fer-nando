@@ -63,7 +63,7 @@ def build_model(optimizer=HYPERPARAMS.optimizer, optimizer_param=HYPERPARAMS.opt
     elif optimizer == 'adam':
         optimizer = Adam(learning_rate=learning_rate, beta1=optimizer_param, beta2=learning_rate_decay)
     else:
-        print "Unknown optimizer: {}".format(optimizer)
+        print("Unknown optimizer: {}".format(optimizer))
     network = regression(network, optimizer=optimizer, loss=NETWORK.loss, learning_rate=learning_rate, name='output')
 
     return network
