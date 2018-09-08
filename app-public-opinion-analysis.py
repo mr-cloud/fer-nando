@@ -4,7 +4,8 @@
 2018/8/25
 """
 import operator
-import thread
+import threading
+
 import time
 
 import cv2
@@ -88,7 +89,7 @@ class EmotionRecognizer:
             if grabbed:
                 # detection phase
                 # keep aspect ratio
-                frame = imutils.resize(frame, width=600)
+                frame = imutils.resize(frame, width=800)
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
                 # detect faces
@@ -105,7 +106,7 @@ class EmotionRecognizer:
                     last_predicts = list()
                 idx = 0
                 for (x, y, w, h) in faces:
-                    print('{}: width={}, height={}'.format(thread_name, w, h))
+                    # print('{}: width={}, height={}'.format(thread_name, w, h))
                     if w < min_w and h < min_h:  # skip the small faces (probably false detections)
                         print('{}: face is ignored cause too small: {}, {}', thread_name, w, h)
                         continue
@@ -145,10 +146,10 @@ class EmotionRecognizer:
         start_time = time.time()
         win_name = "Public Opinion Analysis"
         cv2.namedWindow(win_name)
-        cv2.moveWindow(win_name, 80, 60)
+        cv2.moveWindow(win_name, 400, 60)
         ## Use simsum.ttc to write Chinese.
         fontpath = "fonts/simsun.ttc"
-        font = ImageFont.truetype(fontpath, 24)
+        font = ImageFont.truetype(fontpath, 32)
         while self.is_camera_working:
             # print('{}: {}'.format(thread_name, time.ctime(time.time())))
             # display images
@@ -156,7 +157,7 @@ class EmotionRecognizer:
                 self.house = np.array(self.frame)
                 height, width, channels = self.house.shape
                 if time.time() - start_time > title_change_interval:
-                    self.pub_op = max(self.opinions.iteritems(), key=operator.itemgetter(1))[0]
+                    self.pub_op = max(self.opinions.items(), key=operator.itemgetter(1))[0]
                     self.numUser = self.numFace
                     if self.opinions[self.pub_op] == 0:
                         self.pub_op = VIDEO_PREDICTOR.emotions[-1]
@@ -165,7 +166,7 @@ class EmotionRecognizer:
                     start_time = time.time()
                 img_pil = Image.fromarray(self.house)
                 draw = ImageDraw.Draw(img_pil)
-                draw.text((width/2, 20), self.CHINESE_PUBLIC_OPINIONS[self.pub_op], font=font, fill=self.CHINESE_OPINION_COLORS[self.pub_op])
+                draw.text((int(width/2), 20), self.CHINESE_PUBLIC_OPINIONS[self.pub_op], font=font, fill=self.CHINESE_OPINION_COLORS[self.pub_op])
                 draw.text((10, 20), u'直播间: ' + str(self.numUser) + u'人', font=font, fill=(255, 255, 255, 0))
                 self.house = np.array(img_pil)
                 cv2.imshow(win_name, self.house)
@@ -180,6 +181,6 @@ class EmotionRecognizer:
 
 
 r = EmotionRecognizer()
-thread.start_new_thread(r.display, ('thread-display', VIDEO_PREDICTOR.time_to_wait_between_display_pub, VIDEO_PREDICTOR.title_change_interval_pub))
+threading.Thread(target=r.display, args=('thread-display', VIDEO_PREDICTOR.time_to_wait_between_display_pub, VIDEO_PREDICTOR.title_change_interval_pub)).start()
 time.sleep(1)
-thread.start_new_thread(r.recognize_emotions, ('thread-recognize', VIDEO_PREDICTOR.frame_rate_pub, VIDEO_PREDICTOR.time_to_wait_between_predictions_pub))
+threading.Thread(target=r.recognize_emotions, args=('thread-recognize', VIDEO_PREDICTOR.frame_rate_pub, VIDEO_PREDICTOR.time_to_wait_between_predictions_pub)).start()

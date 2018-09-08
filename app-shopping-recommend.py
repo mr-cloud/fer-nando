@@ -6,7 +6,7 @@
 import argparse
 import operator
 import os
-import thread
+import threading
 import time
 
 import cv2
@@ -102,7 +102,7 @@ class EmotionRecognizer:
                 min_w = 100
                 min_h = 100
                 faces = self.face_detector.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=5, minSize=(min_w, min_h))
-                print('{}: #faces detected: {}'.format(thread_name, len(faces)))
+                # print('{}: #faces detected: {}'.format(thread_name, len(faces)))
                 if time.time() - start_time > time_to_wait_between_predictions:
                     is_predict_enabled = True
                     last_predicts = list()
@@ -154,7 +154,7 @@ class EmotionRecognizer:
         cv2.namedWindow(win_name_recommend)
         cv2.moveWindow(win_name_recommend, 800, 60)
         time.sleep(1)
-        thread.start_new_thread(r.recognize_emotions, ('thread-recognize', VIDEO_PREDICTOR.frame_rate_shop, VIDEO_PREDICTOR.time_to_wait_between_predictions_shop))
+        threading.Thread(target=r.recognize_emotions, args=('thread-recognize', VIDEO_PREDICTOR.frame_rate_shop, VIDEO_PREDICTOR.time_to_wait_between_predictions_shop)).start()
         title = 'likeness 0.5'
         fontpath = "fonts/simsun.ttc"
         font = ImageFont.truetype(fontpath, 24)
@@ -168,7 +168,7 @@ class EmotionRecognizer:
                 self.house = np.array(self.frame)
                 height, width, channels = self.house.shape
                 if time.time() - start_time > title_change_interval:
-                    self.pub_op = max(self.opinions.iteritems(), key=operator.itemgetter(1))[0]
+                    self.pub_op = max(self.opinions.items(), key=operator.itemgetter(1))[0]
                     if self.opinions[self.pub_op] == 0:
                         self.pub_op = VIDEO_PREDICTOR.emotions[-1]
                     print('{}: public opinion {} with count {}'.format(thread_name, self.pub_op, self.opinions[self.pub_op]))
@@ -176,14 +176,14 @@ class EmotionRecognizer:
                     title = 'likeness {}'.format(self.sentiments[self.pub_op])
                     if item is not None:
                         img = np.array(item)
-                        width, height, channels = img.shape
-                        cv2.putText(img, title, (80, height - 60), cv2.FONT_HERSHEY_SIMPLEX, 1.0,
+                        width_img, height_img, channels_img = img.shape
+                        cv2.putText(img, title, (80, height_img - 60), cv2.FONT_HERSHEY_SIMPLEX, 1.0,
                                     self.OPINION_COLORS[self.pub_op], 4)
                         cv2.imshow(win_name_recommend, img)
                         cv2.waitKey(1)
                     start_time = time.time()
                 # params: img, text, org, fontFace, fontScale, color[, thickness[, lineType[, bottomLeftOrigin]]]
-                cv2.putText(self.house, self.PUBLIC_OPINIONS[self.pub_op], (width/2, 20), cv2.FONT_HERSHEY_SIMPLEX, 1.0, self.OPINION_COLORS[self.pub_op], 4)
+                cv2.putText(self.house, self.PUBLIC_OPINIONS[self.pub_op], (int(width/2), 20), cv2.FONT_HERSHEY_SIMPLEX, 1.0, self.OPINION_COLORS[self.pub_op], 4)
                 cv2.imshow(win_name_display, self.house)
                 # delay <= 1 ms, 0 means forever
                 key = cv2.waitKey(1) & 0xFF
@@ -215,6 +215,7 @@ class EmotionRecognizer:
         cv2.moveWindow(win_name, 80, 60)
         for file in os.listdir(path):
             filename = os.path.join(path, file)
+            print('Loading file: {}'.format(filename))
             img = cv2.imread(filename)
             # show img and detect faces
             img = imutils.resize(img, width=300)
@@ -235,6 +236,7 @@ class EmotionRecognizer:
                 # try to recognize emotion
                 face = gray[y:y + h, x:x + w].copy()
                 label, confidence = self.predict_emotion(face)
+                print('label={}, confidence={}'.format(label, confidence))
                 opinions[label] += 1
                 # display and send message by socket
                 if VIDEO_PREDICTOR.show_confidence:
@@ -244,7 +246,7 @@ class EmotionRecognizer:
                 if label is not None:
                     cv2.putText(img, text, (x + 20, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, self.TEXT_COLOR, 2)
 
-            emotion = max(opinions.iteritems(), key=operator.itemgetter(1))[0]
+            emotion = max(opinions.items(), key=operator.itemgetter(1))[0]
             if opinions[emotion] == 0:
                 emotion = VIDEO_PREDICTOR.emotions[-1]
             cv2.imshow(win_name, img)
@@ -253,7 +255,7 @@ class EmotionRecognizer:
             self.classified_items[emotion].append(cnt)
             self.interests[cnt] = 0.5
             cnt += 1
-        self.recommend_pool = self.items.keys()
+        self.recommend_pool = list(self.items.keys())
         cv2.destroyWindow(win_name)
         print('Loaded {} imgs.'.format(cnt))
 
@@ -272,7 +274,7 @@ class EmotionRecognizer:
         for rank, item_idx in enumerate(ranks[0:3]):
             win_name = '{}. likeness:{}'.format(rank + 1, self.interests[item_idx])
             cv2.namedWindow(win_name)
-            cv2.moveWindow(win_name, 80 + rank * 100, 60 + rank * 100)
+            cv2.moveWindow(win_name, 80 + rank * 200, 60 + rank * 200)
             cv2.imshow(win_name, self.items[item_idx][1])
             cv2.waitKey(0)
         cv2.destroyAllWindows()
@@ -286,6 +288,6 @@ args = parser.parse_args()
 if args.path:
     if os.path.isdir(args.path):
         r = EmotionRecognizer()
-        thread.start_new_thread(r.display, ('thread-display', VIDEO_PREDICTOR.time_to_wait_between_display_shop, VIDEO_PREDICTOR.title_change_interval_shop, args.path))
+        r.display('thread-display', VIDEO_PREDICTOR.time_to_wait_between_display_shop, VIDEO_PREDICTOR.title_change_interval_shop, args.path)
     else:
         print("Error: path '{}' not found".format(args.path))
