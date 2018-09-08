@@ -68,6 +68,9 @@ class EmotionRecognizer:
         self.CHINESE_PUBLIC_OPINIONS = dict(zip(VIDEO_PREDICTOR.emotions, [u'群情激愤|>_<|', u'其乐融融 (^o^)', u'哀鸿遍野 /T_T\\', u'瞠目结舌)O.O(', u'索然无味...']))
         self.CHINESE_OPINION_COLORS = dict(zip(VIDEO_PREDICTOR.emotions, [(0, 0, 255, 0), (0, 173, 255, 0), (255, 0, 77, 0), (255, 0, 255, 0), (0, 255, 26, 0)]))
         self.frame = None
+        # number of detected faces as the online users number
+        self.numUser = 0
+        self.numFace = 0
 
     def predict_emotion(self, image):
         emotion, confidence = predict(image, self.model, self.shape_predictor)
@@ -95,7 +98,8 @@ class EmotionRecognizer:
                 min_w = 100
                 min_h = 100
                 faces = self.face_detector.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=5, minSize=(min_w, min_h))
-                print('{}: #faces detected: {}'.format(thread_name, len(faces)))
+                self.numFace = len(faces)
+                # print('{}: #faces detected: {}'.format(thread_name, len(faces)))
                 if time.time() - start_time > time_to_wait_between_predictions:
                     is_predict_enabled = True
                     last_predicts = list()
@@ -153,6 +157,7 @@ class EmotionRecognizer:
                 height, width, channels = self.house.shape
                 if time.time() - start_time > title_change_interval:
                     self.pub_op = max(self.opinions.iteritems(), key=operator.itemgetter(1))[0]
+                    self.numUser = self.numFace
                     if self.opinions[self.pub_op] == 0:
                         self.pub_op = VIDEO_PREDICTOR.emotions[-1]
                     print('{}: public opinion {} with count {}'.format(thread_name, self.pub_op, self.opinions[self.pub_op]))
@@ -161,6 +166,7 @@ class EmotionRecognizer:
                 img_pil = Image.fromarray(self.house)
                 draw = ImageDraw.Draw(img_pil)
                 draw.text((width/2, 20), self.CHINESE_PUBLIC_OPINIONS[self.pub_op], font=font, fill=self.CHINESE_OPINION_COLORS[self.pub_op])
+                draw.text((10, 20), u'直播间: ' + str(self.numUser) + u'人', font=font, fill=(255, 255, 255, 0))
                 self.house = np.array(img_pil)
                 cv2.imshow(win_name, self.house)
                 # delay <= 1 ms, 0 means forever

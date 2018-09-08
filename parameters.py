@@ -20,26 +20,25 @@ class Network:
     output_size = 5
     activation = 'relu'
     loss = 'categorical_crossentropy'
-    use_landmarks = True
-    use_hog_and_landmarks = True
-    use_hog_sliding_window_and_landmarks = True
+    use_landmarks = False
+    use_hog_and_landmarks = False
+    use_hog_sliding_window_and_landmarks = False
     use_batchnorm_after_conv_layers = True
     use_batchnorm_after_fully_connected_layers = False
 
 class Hyperparams:
-    keep_prob = 0.89383
-    learning_rate = 0.09632
-    learning_rate_decay = 0.6972
-    decay_step = 50
+    keep_prob =1     #0.5   #0.89383
+    learning_rate =0.08          #0.09632
+    learning_rate_decay =0.5         #0.6972
+    decay_step = 700
     optimizer = 'momentum'  # {'momentum', 'adam'}
-    optimizer_param = 0.75463   # momentum value for Momentum optimizer, or beta1 value for Adam
+    optimizer_param = 0.8  #0.75463   # momentum value for Momentum optimizer, or beta1 value for Adam
     # FIXME initialization method selection
 
-
 class Training:
-    batch_size = 128
-    epochs = 15
-    snapshot_step = 10000
+    batch_size = 64
+    epochs = 7
+    snapshot_step = 2000
     vizualize = True
     logs_dir = "logs"
     checkpoint_dir = "checkpoints/chk"

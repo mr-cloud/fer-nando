@@ -12,28 +12,72 @@ from tflearn.optimizers import Momentum, Adam
 
 from parameters import NETWORK, HYPERPARAMS
 
-
-# FIXME combine with Inception
 def build_model(optimizer=HYPERPARAMS.optimizer, optimizer_param=HYPERPARAMS.optimizer_param, 
     learning_rate=HYPERPARAMS.learning_rate, keep_prob=HYPERPARAMS.keep_prob,
     learning_rate_decay=HYPERPARAMS.learning_rate_decay, decay_step=HYPERPARAMS.decay_step):
 
-    images_network = input_data(shape=[None, NETWORK.input_size, NETWORK.input_size, 1], name='input1')
-    images_network = conv_2d(images_network, 64, 5, activation=NETWORK.activation)
-    #images_network = local_response_normalization(images_network)
+    images_input = input_data(shape=[None, NETWORK.input_size, NETWORK.input_size, 1], name='input1')
+    
+    images_network = conv_2d(images_input, 16, 3, activation='relu')
     if NETWORK.use_batchnorm_after_conv_layers:
         images_network = batch_normalization(images_network)
-    images_network = max_pool_2d(images_network, 3, strides = 2)
-    images_network = conv_2d(images_network, 64, 5, activation=NETWORK.activation)
+    images_network = conv_2d(images_network, 16, 3, activation='relu')
     if NETWORK.use_batchnorm_after_conv_layers:
         images_network = batch_normalization(images_network)
-    images_network = max_pool_2d(images_network, 3, strides = 2)
-    images_network = conv_2d(images_network, 128, 4, activation=NETWORK.activation)
+    images_network = max_pool_2d(images_network, 2, strides=2)  #24*24*16
+    
+    
+    images_network = conv_2d(images_network, 32, 3, activation='relu')
     if NETWORK.use_batchnorm_after_conv_layers:
         images_network = batch_normalization(images_network)
+    images_network = conv_2d(images_network, 32, 3, activation='relu')
+    if NETWORK.use_batchnorm_after_conv_layers:
+        images_network = batch_normalization(images_network)
+    images_network = max_pool_2d(images_network, 2, strides=2)    #12*12*32
+    
+    images_network=tf.pad(images_network,[[0,0],[18,18],[18,18],[0,0]],'CONSTANT')
+    images_network = merge([images_network, images_input], 'concat', axis=3)              #48*48*33
+    
+    images_network = conv_2d(images_network, 64, 3, activation='relu')
+    if NETWORK.use_batchnorm_after_conv_layers:
+        images_network = batch_normalization(images_network)
+    images_network = conv_2d(images_network, 64, 3, activation='relu')
+    if NETWORK.use_batchnorm_after_conv_layers:
+        images_network = batch_normalization(images_network)
+    images_network = conv_2d(images_network, 64, 3, activation='relu')
+    if NETWORK.use_batchnorm_after_conv_layers:
+        images_network = batch_normalization(images_network)
+    images_network = max_pool_2d(images_network, 2, strides=2)       #24*24*64
+    
+    
+    images_network = conv_2d(images_network, 128, 3, activation='relu')
+    if NETWORK.use_batchnorm_after_conv_layers:
+        images_network = batch_normalization(images_network)
+    images_network = conv_2d(images_network, 128, 3, activation='relu')
+    if NETWORK.use_batchnorm_after_conv_layers:
+        images_network = batch_normalization(images_network)
+    images_network = conv_2d(images_network, 128, 3, activation='relu')
+    if NETWORK.use_batchnorm_after_conv_layers:
+        images_network = batch_normalization(images_network)
+    images_network = max_pool_2d(images_network, 2, strides=2)      #12*12*128
+#     
+    images_network = conv_2d(images_network, 128, 3, activation='relu')
+    if NETWORK.use_batchnorm_after_conv_layers:
+        images_network = batch_normalization(images_network)
+    images_network = conv_2d(images_network, 128, 3, activation='relu')
+    if NETWORK.use_batchnorm_after_conv_layers:
+        images_network = batch_normalization(images_network)
+    images_network = conv_2d(images_network, 128, 3, activation='relu')
+    if NETWORK.use_batchnorm_after_conv_layers:
+        images_network = batch_normalization(images_network)
+    images_network = max_pool_2d(images_network, 2, strides=2)     #6*6*128
+     
+    images_network = fully_connected(images_network, 1024, activation='relu')
+    images_network = dropout(images_network,keep_prob=keep_prob)
+    if NETWORK.use_batchnorm_after_fully_connected_layers:
+        images_network = batch_normalization(images_network)
+    images_network = fully_connected(images_network, 1024, activation='relu')
     images_network = dropout(images_network, keep_prob=keep_prob)
-    # TOKNOW How does it work by 128 * 12 * 12 connecting FL with 1024
-    images_network = fully_connected(images_network, 1024, activation=NETWORK.activation)
     if NETWORK.use_batchnorm_after_fully_connected_layers:
         images_network = batch_normalization(images_network)
 
@@ -58,7 +102,7 @@ def build_model(optimizer=HYPERPARAMS.optimizer, optimizer_param=HYPERPARAMS.opt
 
     if optimizer == 'momentum':
         # FIXME base_lr * (1 - iter/max_iter)^0.5, base_lr = 0.01
-        optimizer = Momentum(learning_rate=learning_rate, momentum=optimizer_param, 
+        optimizer = Momentum(learning_rate=learning_rate, momentum=optimizer_param,
                     lr_decay=learning_rate_decay, decay_step=decay_step)
     elif optimizer == 'adam':
         optimizer = Adam(learning_rate=learning_rate, beta1=optimizer_param, beta2=learning_rate_decay)

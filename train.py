@@ -53,6 +53,8 @@ def train(optimizer=HYPERPARAMS.optimizer, optimizer_param=HYPERPARAMS.optimizer
                         if NETWORK.use_landmarks:
                                 model.fit([data['X'], data['X2']], data['Y'],
                                         validation_set=([validation['X'], validation['X2']], validation['Y']),
+                                        # for batch-norm
+                                        shuffle=True,
                                         snapshot_step=TRAINING.snapshot_step,
                                         show_metric=TRAINING.vizualize,
                                         batch_size=TRAINING.batch_size,
@@ -60,6 +62,7 @@ def train(optimizer=HYPERPARAMS.optimizer, optimizer_param=HYPERPARAMS.optimizer
                         else:
                                 model.fit(data['X'], data['Y'],
                                         validation_set=(validation['X'], validation['Y']),
+                                        shuffle=True,
                                         snapshot_step=TRAINING.snapshot_step,
                                         show_metric=TRAINING.vizualize,
                                         batch_size=TRAINING.batch_size,
@@ -122,4 +125,4 @@ args = parser.parse_args()
 if args.train=="yes" or args.train=="Yes" or args.train=="YES":
         train()
 if args.evaluate=="yes" or args.evaluate=="Yes" or args.evaluate=="YES":
-        train(train_model=False)
+        train(train_model=False)   
