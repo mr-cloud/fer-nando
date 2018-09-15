@@ -4,7 +4,7 @@
 - _app-public-opinion-analysis.py_
     - Application on public opinion analysis based on facial expression recognition techniques.
 - _app-shopping-recommend.py_
-    - Application to simulate a online shopping in which users are recommended some items based on their interaction
+    - Application to simulate an online shopping in which users are recommended some items based on their interaction
     through camera.
 - python 3 compatibility.
 
