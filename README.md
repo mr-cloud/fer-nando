@@ -1,6 +1,6 @@
 #FerNano: Facial Expression Recognition System 
 
-### Contributes
+### Contributions
 - _app-public-opinion-analysis.py_
     - Application on public opinion analysis based on facial expression recognition techniques.
 - _app-shopping-recommend.py_
